@@ -543,6 +543,23 @@ test(
     }
 );
 
+if (version_compare(PHP_VERSION, '7.0.0') >= 0) {
+    test(
+        'can use return type-hints under PHP 7',
+        function () {
+            $c = new Container();
+
+            $c->register(function ($path) : CacheProvider {
+                return new FileCache($path);
+            }, [$c->ref("cache.path")]);
+
+            $c->set("cache.path", "/foo");
+
+            eq($c->get(CacheProvider::class)->path, "/foo", "can auto-register using return type-hint");
+        }
+    );
+}
+
 configure()->enableCodeCoverage(__DIR__ . '/build/clover.xml', dirname(__DIR__) . '/src');
 
 exit(run()); // exits with errorlevel (for CI tools etc.)

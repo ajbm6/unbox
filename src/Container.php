@@ -152,13 +152,17 @@ class Container implements ContainerInterface, FactoryInterface
      *     registers a component creation function with a reference to a component "db.name"
      *     as the first argument.
      *
+     *   * `register(function () : Foo { ... })` registers a component creation function using the
+     *     [return type-hint](http://php.net/manual/en/functions.returning-values.php#functions.returning-values.type-declaration)
+     *     specified by the given `Closure` (available only with PHP 7.0 or newer.)
+     *
      * In effect, you can think of `$func` as being an optional argument.
      *
      * The provided parameter values may include any `BoxedValueInterface`, such as the boxed
      * component referenced created by {@see Container::ref()} - these will be unboxed as late
      * as possible.
      *
-     * @param string                      $name                component name
+     * @param Closure|string              $name_or_func        component name (or PHP 7 closure with return type-hint)
      * @param callable|mixed|mixed[]|null $func_or_map_or_type creation function or class-name, or, if the first
      *                                                         argument is a class-name, a map of constructor arguments
      * @param mixed|mixed[]               $map                 mixed list/map of parameter values (and/or boxed values)
@@ -167,13 +171,32 @@ class Container implements ContainerInterface, FactoryInterface
      *
      * @throws ContainerException
      */
-    public function register($name, $func_or_map_or_type = null, $map = [])
+    public function register($name_or_func, $func_or_map_or_type = null, $map = [])
     {
+        if ($name_or_func instanceof Closure) {
+            // obtain component name from return type-hint of PHP 7 Closure:
+            $reflection = new ReflectionFunction($name_or_func);
+
+            $return_type = $reflection->getReturnType();
+
+            if ($return_type === null || $return_type->isBuiltin()) {
+                throw new ContainerException("the factory Closure must specify a class/interface return-type");
+            }
+
+            $name = $return_type->__toString();
+        } else {
+            $name = $name_or_func;
+        }
+
         if (@$this->immutable[$name]) {
             throw new ContainerException("attempted re-registration of active component: {$name}");
         }
 
-        if (is_callable($func_or_map_or_type)) {
+        if ($name_or_func instanceof Closure) {
+            // first argument is a PHP 7 Closure with return type-hint:
+            $func = $name_or_func;
+            $map = $func_or_map_or_type;
+        } elseif (is_callable($func_or_map_or_type)) {
             // second argument is a creation function
             $func = $func_or_map_or_type;
         } elseif (is_string($func_or_map_or_type)) {

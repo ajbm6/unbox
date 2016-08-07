@@ -136,6 +136,8 @@ isActive(string $name) : bool                          # check if a component ha
 
 add(ProviderInterface $provider)                       # register a configuration provider
 
+register(Closure $func)                                # register a component (PHP 7 only)
+register(Closure $func, array $map)                    # ... with custom arguments to that Closure
 register(string $type)                                 # register a component (for auto-creation)
 register(string $type, array $map)                     # ... with custom constructor arguments
 register(string $name, string $type)                   # ... with a specific name for auto-creation
@@ -227,6 +229,8 @@ that lets you register a component for dependency injection.
 This method generally takes one of the following forms:
 
 ```php
+register(Closure $func)                                # register a component (PHP 7 only)
+register(Closure $func, array $map)                    # ... with custom arguments to that Closure
 register(string $type)                                 # register a component (for auto-creation)
 register(string $type, array $map)                     # ... with custom constructor arguments
 register(string $name, string $type)                   # ... with a specific name for auto-creation
@@ -291,6 +295,10 @@ The following examples are all valid use-cases of the above forms:
   * `register(Bar::class, function ($name) { ... }, [$container->ref('db.name')]);`
     registers a component creation function with a reference to a component "db.name"
     as the first argument.
+  
+  * `register(function () : Foo { ... })` registers a component creation function using the
+    [return type-hint](http://php.net/manual/en/functions.returning-values.php#functions.returning-values.type-declaration)
+    specified by the given `Closure` (available only with PHP 7.0 or newer.)
 
 In effect, you can think of `$func` as being an optional argument.
 
